@@ -4,6 +4,7 @@ Ball::Ball(const char* name) {
     this->xPosition = 1;
     this->yPosition = 1;
     this->name = name;
+    this->speed = 1000;
 }
 
 Ball::~Ball() {}

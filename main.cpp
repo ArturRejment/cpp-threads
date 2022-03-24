@@ -6,6 +6,14 @@
 
 using namespace std;
 
+void moveBall(Ball *ball) {
+	while(1){
+		ball->setXPosition(ball->getXPosition()+1);
+		ball->setYPosition(ball->getYPosition()+1);
+		sleep(ball->getSpeed());
+	}
+}
+
 int main(int argc, char** argv) {
 	Ball ball = Ball("O");
 	initscr();
@@ -20,8 +28,6 @@ int main(int argc, char** argv) {
 	init_pair(1, COLOR_RED, COLOR_YELLOW);
 	start_color();
 	attron(COLOR_PAIR(1));
-	// wbkgdset(win, COLOR_GREEN);
-	// refresh();
 
 	for (int i=2; i<20; i++){
 		mvwprintw(win, ball.getXPosition(), ball.getYPosition(), ball.getName());

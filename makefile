@@ -3,4 +3,4 @@ CC=g++
 all: main
 
 main: main.cpp
-	$(CC) main.cpp -lncurses -o main
+	$(CC) main.cpp -pthread -lncurses -o main
