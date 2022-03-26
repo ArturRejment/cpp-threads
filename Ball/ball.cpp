@@ -7,6 +7,7 @@ Ball::Ball(const char* name, int xPos, int yPos, int speed) {
     this->speed = speed;
     this->xDelta = 1;
     this->yDelta = 1;
+    this->bounceNumber = 0;
 }
 
 Ball::~Ball() {}

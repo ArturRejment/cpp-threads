@@ -2,72 +2,93 @@
 #include <ncurses.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <thread>
+#include <list>
+#include <vector>
 #include "Ball/ball.cpp"
 
 using namespace std;
 
-void* moveBall(void* arg) {
-	Ball *ball = (Ball*)arg;
+const int BOARD_LENGTH = 71;
+const int BOARD_WIDTH = 30;
+
+vector<Ball> ballList;
+
+void moveBall(Ball *ball) {
+	// Ball *ball = (Ball*)arg;
 	int x, y;
 	while(1){
 		x = ball->getXPosition();
 		y = ball->getYPosition();
 		
-		if (x >= 10) {
+		// Bottom 
+		if (x == BOARD_WIDTH-2) {
 			ball->bounceX();
+			ball->incrementBounceNumber();
 		}
-		else if (x < 1) {
-			ball->setXPosition(0);
+		// Upper
+		else if (x == 1) {
 			ball->bounceX();
+			ball->incrementBounceNumber();
 		}
 
-		if (y >= 10) {
+		// Right
+		if (y == BOARD_LENGTH-2) {
 			ball->bounceY();
+			ball->incrementBounceNumber();
 		}
-		else if ( y < 1 ){
-			ball->setYPosition(0);
+		// Left
+		else if (y == 1){
 			ball->bounceY();
+			ball->incrementBounceNumber();
+		}
+
+		if (ball->getBounceNumber() >= 5) {
+			break;
 		}
 
 		ball->setXPosition(x + ball->getXDelta());
 		ball->setYPosition(y + ball->getYDelta());
 		int sl = ball->getSpeed();
-		sleep(sl);
+		usleep(sl);
 	}
 }
 
-int main(int argc, char** argv) {
-	Ball ball = Ball("O", 2, 3, 1);
-	Ball ball2 = Ball("P", 4, 1, 2);
-
-	pthread_t t1;
-	pthread_t t2;
-	pthread_create(&t1, NULL, &moveBall, &ball);
-	pthread_create(&t2, NULL, &moveBall, &ball2);
-
-	initscr();
-	noecho();
-	curs_set(0);
-
-	int yMax, xMax;
-	getmaxyx(stdscr, yMax, xMax);
-
-	WINDOW *win = newwin(yMax/2, xMax/2, yMax/4, xMax/4);
-	box(win, 0, 0);
-
+void printBoard(WINDOW *win) {
 	for (;;) {
-		mvwprintw(win, ball.getXPosition(), ball.getYPosition(), ball.getName());
-		mvwprintw(win, ball2.getXPosition(), ball2.getYPosition(), ball2.getName());
+		for (Ball ball : ballList) {
+			mvwprintw(win, ball.getXPosition(), ball.getYPosition(), ball.getName());
+		}
 		wrefresh(win);
 		fflush(stdout);
 		napms(100);
 		werase(win);
 		box(win, 0, 0);
 	}
+}
 
-	pthread_join(t1, NULL);
-	pthread_join(t2, NULL);
+int main(int argc, char** argv) {
 
+	initscr();
+	noecho();
+	curs_set(0);
+	WINDOW *win = newwin(BOARD_WIDTH, BOARD_LENGTH, 15, 15);
+	box(win, 0, 0);
+
+	thread printBoardThread(printBoard, win);
+
+	Ball ball = Ball("O", 15, 15, 100000);
+	Ball ball2 = Ball("P", 15, 15, 500000);
+	ballList.push_back(ball);
+	ballList.push_back(ball2);
+
+	list<thread> threadList;
+
+	for (int i = 0; i < 2; i++) {
+		threadList.push_back(thread(moveBall, &(ballList[i])));
+	}
+
+	printBoardThread.join();
 
 	wgetch(win);
 	endwin();
