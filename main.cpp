@@ -8,19 +8,37 @@ using namespace std;
 
 void* moveBall(void* arg) {
 	Ball *ball = (Ball*)arg;
-	int i = 0;
+	int x, y;
 	while(1){
-		i += 1;
-		ball->setXPosition(i);
-		ball->setYPosition(i);
+		x = ball->getXPosition();
+		y = ball->getYPosition();
+		
+		if (x >= 10) {
+			ball->bounceX();
+		}
+		else if (x < 1) {
+			ball->setXPosition(0);
+			ball->bounceX();
+		}
+
+		if (y >= 10) {
+			ball->bounceY();
+		}
+		else if ( y < 1 ){
+			ball->setYPosition(0);
+			ball->bounceY();
+		}
+
+		ball->setXPosition(x + ball->getXDelta());
+		ball->setYPosition(y + ball->getYDelta());
 		int sl = ball->getSpeed();
 		sleep(sl);
 	}
 }
 
 int main(int argc, char** argv) {
-	Ball ball = Ball("O", 1);
-	Ball ball2 = Ball("P", 2);
+	Ball ball = Ball("O", 2, 3, 1);
+	Ball ball2 = Ball("P", 4, 1, 2);
 
 	pthread_t t1;
 	pthread_t t2;
