@@ -54,9 +54,24 @@ void moveBall(Ball *ball) {
 	}
 }
 
+bool allBallsDoneCheck() {
+	for (Ball ball : ballList) {
+		if (ball.getBounceNumber() < 5) {
+			return false;
+		}
+	}
+	return true;
+}
+
 void printBoard(WINDOW *win) {
 	for (;;) {
+		if (allBallsDoneCheck()) {
+			break;
+		}
 		for (Ball ball : ballList) {
+			if (ball.getBounceNumber() >= 5) {
+				continue;
+			}
 			mvwprintw(win, ball.getXPosition(), ball.getYPosition(), ball.getName());
 		}
 		wrefresh(win);
@@ -64,6 +79,18 @@ void printBoard(WINDOW *win) {
 		napms(100);
 		werase(win);
 		box(win, 0, 0);
+	}
+}
+
+void removeBalls(){
+	while(!ballList.empty()){
+		
+		this_thread::sleep_for(1s);
+		for (vector<Ball>::iterator it = ballList.begin(); it != ballList.end(); ++it) {
+			if ((*it).getBounceNumber() >= 5) {
+				ballList.erase(it);
+			}
+		}
 	}
 }
 
@@ -78,7 +105,7 @@ int main(int argc, char** argv) {
 	thread printBoardThread(printBoard, win);
 
 	Ball ball = Ball("O", 15, 15, 100000);
-	Ball ball2 = Ball("P", 15, 15, 500000);
+	Ball ball2 = Ball("P", 15, 15, 200000);
 	ballList.push_back(ball);
 	ballList.push_back(ball2);
 
@@ -89,8 +116,11 @@ int main(int argc, char** argv) {
 	}
 
 	printBoardThread.join();
+	while(!threadList.empty()){
+		threadList.front().join();
+		threadList.pop_front();
+	}
 
-	wgetch(win);
 	endwin();
 
 	return 0;
