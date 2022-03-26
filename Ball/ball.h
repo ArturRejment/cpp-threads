@@ -7,10 +7,11 @@ class Ball {
 		int xPosition;
 		int yPosition;
 		int speed;
+		int bounceNumber;
 
 	public:
         Ball();
-        Ball(const char* name);
+        Ball(const char* name, int speed);
         ~Ball();
 
 		int getXPosition();
@@ -19,4 +20,6 @@ class Ball {
 		void setYPosition(int position);
         int getSpeed();
         const char* getName();
+		int getBounceNumber();
+		void incrementBounceNumber();
 };
