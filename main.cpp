@@ -5,6 +5,7 @@
 #include <thread>
 #include <list>
 #include <vector>
+#include <random>
 #include "Ball/ball.cpp"
 
 using namespace std;
@@ -96,6 +97,11 @@ void removeBalls(){
 
 int main(int argc, char** argv) {
 
+	random_device rd;
+	mt19937 gen(rd());
+	uniform_int_distribution<> sleepTime(300'000, 600'000);
+	uniform_int_distribution<> ballDirection(1, 3);
+
 	initscr();
 	noecho();
 	curs_set(0);
@@ -104,15 +110,17 @@ int main(int argc, char** argv) {
 
 	thread printBoardThread(printBoard, win);
 
-	Ball ball = Ball("O", 15, 15, 100000);
-	Ball ball2 = Ball("P", 15, 15, 200000);
-	ballList.push_back(ball);
-	ballList.push_back(ball2);
+	char *namesArray[8] = {"O", "P", "B", "C", "G", "D", "U", "R"};
+
+	for (int i = 0; i < 8; i++) {
+		ballList.push_back(Ball(namesArray[i], sleepTime(gen), ballDirection(gen)));
+	}
 
 	list<thread> threadList;
 
-	for (int i = 0; i < 2; i++) {
+	for (int i = 0; i < 8; i++) {
 		threadList.push_back(thread(moveBall, &(ballList[i])));
+		this_thread::sleep_for(1s);
 	}
 
 	printBoardThread.join();

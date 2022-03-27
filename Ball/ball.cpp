@@ -1,13 +1,21 @@
 #include "ball.h"
 
-Ball::Ball(const char* name, int xPos, int yPos, int speed) {
-    this->xPosition = xPos;
-    this->yPosition = yPos;
+Ball::Ball(const char* name, int speed, int ballDirection) {
+    this->xPosition = 28;
+    this->yPosition = 35;
     this->name = name;
     this->speed = speed;
     this->xDelta = 1;
-    this->yDelta = 1;
     this->bounceNumber = 0;
+    if (ballDirection == 1) {
+        this->yDelta = 1;
+    }
+    else if (ballDirection == 2) {
+        this->yDelta = -1;
+    }
+    else {
+        this->yDelta = 0;
+    }
 }
 
 Ball::~Ball() {}
