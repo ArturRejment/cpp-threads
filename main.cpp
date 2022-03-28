@@ -7,6 +7,7 @@
 #include <vector>
 #include <random>
 #include "Ball/ball.cpp"
+#include "Square/square.cpp"
 
 using namespace std;
 
@@ -55,6 +56,31 @@ void moveBall(Ball *ball) {
 	}
 }
 
+void moveSquare(Square *square) {
+	int upPosition;
+
+	while(1) {
+		upPosition = square->getUpPosition();
+		if (square->isUpDirection()){
+			square->setUpPosition(upPosition-=1);
+			if (square->getUpPosition() == 1) {
+				square->changeDirection();
+				square->drawSpeed();
+			}
+		}
+		else {
+			square->setUpPosition(upPosition+=1);
+			if (square->getDownPosition() == BOARD_WIDTH-2) {
+				square->changeDirection();
+				square->drawSpeed();
+			}
+		}
+		int sl = square->getSpeed();
+		usleep(sl);
+	}
+
+}
+
 bool allBallsDoneCheck() {
 	for (Ball ball : ballList) {
 		if (ball.getBounceNumber() < 5) {
@@ -64,7 +90,7 @@ bool allBallsDoneCheck() {
 	return true;
 }
 
-void printBoard(WINDOW *win) {
+void printBoard(WINDOW *win, Square *square) {
 	for (;;) {
 		if (allBallsDoneCheck()) {
 			break;
@@ -75,6 +101,13 @@ void printBoard(WINDOW *win) {
 			}
 			mvwprintw(win, ball.getXPosition(), ball.getYPosition(), ball.getName());
 		}
+		wattron(win, A_STANDOUT);
+		for(int i = 0; i < square->getLength(); i++){
+			for (int j = 0; j < square->getHeight(); j++){
+				mvwprintw(win, square->getUpPosition() + i, 6 + j, " ");
+			}
+		}
+		wattroff(win, A_STANDOUT);
 		wrefresh(win);
 		fflush(stdout);
 		napms(100);
@@ -83,17 +116,6 @@ void printBoard(WINDOW *win) {
 	}
 }
 
-void removeBalls(){
-	while(!ballList.empty()){
-		
-		this_thread::sleep_for(1s);
-		for (vector<Ball>::iterator it = ballList.begin(); it != ballList.end(); ++it) {
-			if ((*it).getBounceNumber() >= 5) {
-				ballList.erase(it);
-			}
-		}
-	}
-}
 
 int main(int argc, char** argv) {
 
@@ -106,9 +128,13 @@ int main(int argc, char** argv) {
 	noecho();
 	curs_set(0);
 	WINDOW *win = newwin(BOARD_WIDTH, BOARD_LENGTH, 15, 15);
+	start_color();
+	use_default_colors();
 	box(win, 0, 0);
 
-	thread printBoardThread(printBoard, win);
+	Square square = Square(10, 10);
+	thread printBoardThread(printBoard, win, &square);
+	thread moveSquareThread(moveSquare, &square);
 
 	char *namesArray[8] = {"O", "P", "B", "C", "G", "D", "U", "R"};
 
@@ -124,6 +150,7 @@ int main(int argc, char** argv) {
 	}
 
 	printBoardThread.join();
+	moveSquareThread.join();
 	while(!threadList.empty()){
 		threadList.front().join();
 		threadList.pop_front();
