@@ -13,7 +13,7 @@ class Ball {
 
 	public:
         Ball();
-        Ball(const char* name, int xPos, int yPos, int speed);
+        Ball(const char* name, int speed, int ballDirection);
         ~Ball();
 
 		int getXPosition();

@@ -2,74 +2,164 @@
 #include <ncurses.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <thread>
+#include <list>
+#include <vector>
+#include <random>
 #include "Ball/ball.cpp"
+#include "Square/square.cpp"
 
 using namespace std;
 
-void* moveBall(void* arg) {
-	Ball *ball = (Ball*)arg;
+const int BOARD_LENGTH = 71;
+const int BOARD_WIDTH = 30;
+
+vector<Ball> ballList;
+
+void moveBall(Ball *ball) {
+	// Ball *ball = (Ball*)arg;
 	int x, y;
 	while(1){
 		x = ball->getXPosition();
 		y = ball->getYPosition();
 		
-		if (x >= 10) {
+		// Bottom 
+		if (x == BOARD_WIDTH-2) {
 			ball->bounceX();
+			ball->incrementBounceNumber();
 		}
-		else if (x < 1) {
-			ball->setXPosition(0);
+		// Upper
+		else if (x == 1) {
 			ball->bounceX();
+			ball->incrementBounceNumber();
 		}
 
-		if (y >= 10) {
+		// Right
+		if (y == BOARD_LENGTH-2) {
 			ball->bounceY();
+			ball->incrementBounceNumber();
 		}
-		else if ( y < 1 ){
-			ball->setYPosition(0);
+		// Left
+		else if (y == 1){
 			ball->bounceY();
+			ball->incrementBounceNumber();
+		}
+
+		if (ball->getBounceNumber() >= 5) {
+			break;
 		}
 
 		ball->setXPosition(x + ball->getXDelta());
 		ball->setYPosition(y + ball->getYDelta());
 		int sl = ball->getSpeed();
-		sleep(sl);
+		usleep(sl);
 	}
 }
 
-int main(int argc, char** argv) {
-	Ball ball = Ball("O", 2, 3, 1);
-	Ball ball2 = Ball("P", 4, 1, 2);
+bool allBallsDoneCheck() {
+	for (Ball ball : ballList) {
+		if (ball.getBounceNumber() < 5) {
+			return false;
+		}
+	}
+	return true;
+}
 
-	pthread_t t1;
-	pthread_t t2;
-	pthread_create(&t1, NULL, &moveBall, &ball);
-	pthread_create(&t2, NULL, &moveBall, &ball2);
+void moveSquare(Square *square) {
+	int upPosition;
 
-	initscr();
-	noecho();
-	curs_set(0);
+	while(1) {
+		if (allBallsDoneCheck()) {
+			break;
+		}
+		upPosition = square->getUpPosition();
+		if (square->isUpDirection()){
+			square->setUpPosition(upPosition-=1);
+			if (square->getUpPosition() == 1) {
+				square->changeDirection();
+				square->drawSpeed();
+			}
+		}
+		else {
+			square->setUpPosition(upPosition+=1);
+			if (square->getDownPosition() == BOARD_WIDTH-1) {
+				square->changeDirection();
+				square->drawSpeed();
+			}
+		}
+		int sl = square->getSpeed();
+		usleep(sl);
+	}
 
-	int yMax, xMax;
-	getmaxyx(stdscr, yMax, xMax);
+}
 
-	WINDOW *win = newwin(yMax/2, xMax/2, yMax/4, xMax/4);
-	box(win, 0, 0);
-
+void printBoard(WINDOW *win, Square *square) {
 	for (;;) {
-		mvwprintw(win, ball.getXPosition(), ball.getYPosition(), ball.getName());
-		mvwprintw(win, ball2.getXPosition(), ball2.getYPosition(), ball2.getName());
+		if (allBallsDoneCheck()) {
+			break;
+		}
+		for (Ball ball : ballList) {
+			if (ball.getBounceNumber() >= 5) {
+				continue;
+			}
+			mvwprintw(win, ball.getXPosition(), ball.getYPosition(), ball.getName());
+		}
+		wattron(win, A_STANDOUT);
+		for(int i = 0; i < square->getLength(); i++){
+			for (int j = 0; j < square->getHeight(); j++){
+				mvwprintw(win, square->getUpPosition() + i, 10 + j, " ");
+			}
+		}
+		wattroff(win, A_STANDOUT);
 		wrefresh(win);
 		fflush(stdout);
 		napms(100);
 		werase(win);
 		box(win, 0, 0);
 	}
-
-	pthread_join(t1, NULL);
-	pthread_join(t2, NULL);
+}
 
 
-	wgetch(win);
+int main(int argc, char** argv) {
+
+	random_device rd;
+	mt19937 gen(rd());
+	uniform_int_distribution<> sleepTime(300'000, 600'000);
+	uniform_int_distribution<> ballDirection(1, 3);
+	uniform_int_distribution<> squareSpeed(100000, 600000);
+
+	initscr();
+	noecho();
+	curs_set(0);
+	WINDOW *win = newwin(BOARD_WIDTH, BOARD_LENGTH, 15, 15);
+	start_color();
+	use_default_colors();
+	box(win, 0, 0);
+
+	Square square = Square(10, 20);
+	thread printBoardThread(printBoard, win, &square);
+	thread moveSquareThread(moveSquare, &square);
+
+	char *namesArray[8] = {"O", "P", "B", "C", "G", "D", "U", "R"};
+
+	for (int i = 0; i < 8; i++) {
+		ballList.push_back(Ball(namesArray[i], sleepTime(gen), ballDirection(gen)));
+	}
+
+	list<thread> threadList;
+
+	for (int i = 0; i < 8; i++) {
+		threadList.push_back(thread(moveBall, &(ballList[i])));
+		this_thread::sleep_for(1s);
+	}
+
+	printBoardThread.join();
+	moveSquareThread.join();
+	while(!threadList.empty()){
+		threadList.front().join();
+		threadList.pop_front();
+	}
+
 	endwin();
 
 	return 0;
