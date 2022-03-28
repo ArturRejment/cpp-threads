@@ -56,10 +56,22 @@ void moveBall(Ball *ball) {
 	}
 }
 
+bool allBallsDoneCheck() {
+	for (Ball ball : ballList) {
+		if (ball.getBounceNumber() < 5) {
+			return false;
+		}
+	}
+	return true;
+}
+
 void moveSquare(Square *square) {
 	int upPosition;
 
 	while(1) {
+		if (allBallsDoneCheck()) {
+			break;
+		}
 		upPosition = square->getUpPosition();
 		if (square->isUpDirection()){
 			square->setUpPosition(upPosition-=1);
@@ -70,7 +82,7 @@ void moveSquare(Square *square) {
 		}
 		else {
 			square->setUpPosition(upPosition+=1);
-			if (square->getDownPosition() == BOARD_WIDTH-2) {
+			if (square->getDownPosition() == BOARD_WIDTH-1) {
 				square->changeDirection();
 				square->drawSpeed();
 			}
@@ -79,15 +91,6 @@ void moveSquare(Square *square) {
 		usleep(sl);
 	}
 
-}
-
-bool allBallsDoneCheck() {
-	for (Ball ball : ballList) {
-		if (ball.getBounceNumber() < 5) {
-			return false;
-		}
-	}
-	return true;
 }
 
 void printBoard(WINDOW *win, Square *square) {
@@ -104,7 +107,7 @@ void printBoard(WINDOW *win, Square *square) {
 		wattron(win, A_STANDOUT);
 		for(int i = 0; i < square->getLength(); i++){
 			for (int j = 0; j < square->getHeight(); j++){
-				mvwprintw(win, square->getUpPosition() + i, 6 + j, " ");
+				mvwprintw(win, square->getUpPosition() + i, 10 + j, " ");
 			}
 		}
 		wattroff(win, A_STANDOUT);
@@ -123,6 +126,7 @@ int main(int argc, char** argv) {
 	mt19937 gen(rd());
 	uniform_int_distribution<> sleepTime(300'000, 600'000);
 	uniform_int_distribution<> ballDirection(1, 3);
+	uniform_int_distribution<> squareSpeed(100000, 600000);
 
 	initscr();
 	noecho();
@@ -132,7 +136,7 @@ int main(int argc, char** argv) {
 	use_default_colors();
 	box(win, 0, 0);
 
-	Square square = Square(10, 10);
+	Square square = Square(10, 20);
 	thread printBoardThread(printBoard, win, &square);
 	thread moveSquareThread(moveSquare, &square);
 
