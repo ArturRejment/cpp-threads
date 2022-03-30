@@ -6,6 +6,7 @@
 #include <list>
 #include <vector>
 #include <random>
+#include <chrono>
 #include "Ball/ball.cpp"
 #include "Square/square.cpp"
 
@@ -51,12 +52,15 @@ void moveBall(Ball *ball) {
 
 		ball->setXPosition(x + ball->getXDelta());
 		ball->setYPosition(y + ball->getYDelta());
+
+		// Sleep to delay ball movement
 		int sl = ball->getSpeed();
 		usleep(sl);
 	}
 }
 
 bool allBallsDoneCheck() {
+	// Check if the all balls finished movement
 	for (Ball ball : ballList) {
 		if (ball.getBounceNumber() < 5) {
 			return false;
@@ -66,13 +70,20 @@ bool allBallsDoneCheck() {
 }
 
 void moveSquare(Square *square) {
+	/*
+	Function responsible for moving the square up and down - depending on a position
+	*/
 	int upPosition;
 
 	while(1) {
+		// Check stop condition
 		if (allBallsDoneCheck()) {
 			break;
 		}
+
 		upPosition = square->getUpPosition();
+
+		// Move square up
 		if (square->isUpDirection()){
 			square->setUpPosition(upPosition-=1);
 			if (square->getUpPosition() == 1) {
@@ -80,6 +91,7 @@ void moveSquare(Square *square) {
 				square->drawSpeed();
 			}
 		}
+		// Move square down
 		else {
 			square->setUpPosition(upPosition+=1);
 			if (square->getDownPosition() == BOARD_WIDTH-1) {
@@ -87,6 +99,8 @@ void moveSquare(Square *square) {
 				square->drawSpeed();
 			}
 		}
+
+		// Sleep to delay square movement
 		int sl = square->getSpeed();
 		usleep(sl);
 	}
@@ -94,16 +108,25 @@ void moveSquare(Square *square) {
 }
 
 void printBoard(WINDOW *win, Square *square) {
-	for (;;) {
+	/*
+	Function responsible for printing the board on the screen using ncurses
+	*/
+
+	while (1) {
+		// Check stop condition
 		if (allBallsDoneCheck()) {
 			break;
 		}
+
+		// Print all the balls on the screen
 		for (Ball ball : ballList) {
 			if (ball.getBounceNumber() >= 5) {
 				continue;
 			}
 			mvwprintw(win, ball.getXPosition(), ball.getYPosition(), ball.getName());
 		}
+
+		// Print square on the screen
 		wattron(win, A_STANDOUT);
 		for(int i = 0; i < square->getLength(); i++){
 			for (int j = 0; j < square->getHeight(); j++){
@@ -111,8 +134,12 @@ void printBoard(WINDOW *win, Square *square) {
 			}
 		}
 		wattroff(win, A_STANDOUT);
+		
+		// Refresh the window
 		wrefresh(win);
 		fflush(stdout);
+
+		// Clear screen after 100ms
 		napms(100);
 		werase(win);
 		box(win, 0, 0);
@@ -124,9 +151,10 @@ int main(int argc, char** argv) {
 
 	random_device rd;
 	mt19937 gen(rd());
-	uniform_int_distribution<> sleepTime(300'000, 600'000);
+	uniform_int_distribution<> sleepTime(300000, 600000);
 	uniform_int_distribution<> ballDirection(1, 3);
 	uniform_int_distribution<> squareSpeed(100000, 600000);
+	uniform_int_distribution<> newThreadPause(500, 2000);
 
 	initscr();
 	noecho();
@@ -136,21 +164,36 @@ int main(int argc, char** argv) {
 	use_default_colors();
 	box(win, 0, 0);
 
-	Square square = Square(10, 20);
+	Square square = Square(10, 10);
 	thread printBoardThread(printBoard, win, &square);
 	thread moveSquareThread(moveSquare, &square);
 
-	char *namesArray[8] = {"O", "P", "B", "C", "G", "D", "U", "R"};
+	char *namesArray[13] = {
+		(char*)"O", 
+		(char*)"P", 
+		(char*)"B",
+		(char*)"C", 
+		(char*)"G", 
+		(char*)"D", 
+		(char*)"U", 
+		(char*)"V",
+		(char*)"R",
+		(char*)"T",
+		(char*)"K",
+		(char*)"Z",
+		(char*)"F",
+	};
 
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < 13; i++) {
 		ballList.push_back(Ball(namesArray[i], sleepTime(gen), ballDirection(gen)));
 	}
 
 	list<thread> threadList;
 
-	for (int i = 0; i < 8; i++) {
+	int sleepTimeThread;
+	for (int i = 0; i < 13; i++) {
 		threadList.push_back(thread(moveBall, &(ballList[i])));
-		this_thread::sleep_for(1s);
+		this_thread::sleep_for(chrono::milliseconds(newThreadPause(gen)));
 	}
 
 	printBoardThread.join();
