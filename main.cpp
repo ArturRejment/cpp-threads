@@ -15,7 +15,9 @@ using namespace std;
 const int BOARD_LENGTH = 71;
 const int BOARD_WIDTH = 30;
 
-vector<Ball> ballList;
+bool finish_flag = false;
+
+list<Ball> ballList;
 
 void moveBall(Ball *ball) {
 	// Ball *ball = (Ball*)arg;
@@ -46,7 +48,7 @@ void moveBall(Ball *ball) {
 			ball->incrementBounceNumber();
 		}
 
-		if (ball->getBounceNumber() >= 5) {
+		if (ball->getBounceNumber() >= 5 || finish_flag == true) {
 			break;
 		}
 
@@ -55,18 +57,8 @@ void moveBall(Ball *ball) {
 
 		// Sleep to delay ball movement
 		int sl = ball->getSpeed();
-		usleep(sl);
+		this_thread::sleep_for(chrono::milliseconds(sl));
 	}
-}
-
-bool allBallsDoneCheck() {
-	// Check if the all balls finished movement
-	for (Ball ball : ballList) {
-		if (ball.getBounceNumber() < 5) {
-			return false;
-		}
-	}
-	return true;
 }
 
 void moveSquare(Square *square) {
@@ -77,7 +69,7 @@ void moveSquare(Square *square) {
 
 	while(1) {
 		// Check stop condition
-		if (allBallsDoneCheck()) {
+		if (finish_flag == true) {
 			break;
 		}
 
@@ -102,7 +94,7 @@ void moveSquare(Square *square) {
 
 		// Sleep to delay square movement
 		int sl = square->getSpeed();
-		usleep(sl);
+		this_thread::sleep_for(chrono::milliseconds(sl));
 	}
 
 }
@@ -113,10 +105,14 @@ void printBoard(WINDOW *win, Square *square) {
 	*/
 
 	while (1) {
+		
 		// Check stop condition
-		if (allBallsDoneCheck()) {
+		if (finish_flag == true) {
 			break;
 		}
+
+		werase(win);
+		box(win, 0, 0);
 
 		// Print all the balls on the screen
 		for (Ball ball : ballList) {
@@ -137,13 +133,19 @@ void printBoard(WINDOW *win, Square *square) {
 		
 		// Refresh the window
 		wrefresh(win);
-		fflush(stdout);
 
 		// Clear screen after 100ms
-		napms(100);
-		werase(win);
-		box(win, 0, 0);
+		this_thread::sleep_for(10ms);
 	}
+}
+
+void finishProgram() {
+	// Function that sets finish_flag after press 'q'
+	char choice;
+	while(choice != 'q'){
+		choice = getch();
+	}
+	finish_flag = true;
 }
 
 
@@ -151,22 +153,14 @@ int main(int argc, char** argv) {
 
 	random_device rd;
 	mt19937 gen(rd());
-	uniform_int_distribution<> sleepTime(300000, 600000);
+	uniform_int_distribution<> sleepTime(100, 1000);
 	uniform_int_distribution<> ballDirection(1, 3);
-	uniform_int_distribution<> squareSpeed(100000, 600000);
-	uniform_int_distribution<> newThreadPause(500, 2000);
-
-	initscr();
-	noecho();
-	curs_set(0);
-	WINDOW *win = newwin(BOARD_WIDTH, BOARD_LENGTH, 15, 15);
-	start_color();
-	use_default_colors();
-	box(win, 0, 0);
+	uniform_int_distribution<> squareSpeed(100, 600);
+	uniform_int_distribution<> newThreadPause(1000, 5000);
+	uniform_int_distribution<> nameIndex(0, 12);
 
 	Square square = Square(10, 10);
-	thread printBoardThread(printBoard, win, &square);
-	thread moveSquareThread(moveSquare, &square);
+	list<thread> threadList;
 
 	char *namesArray[13] = {
 		(char*)"O", 
@@ -184,18 +178,29 @@ int main(int argc, char** argv) {
 		(char*)"F",
 	};
 
-	for (int i = 0; i < 13; i++) {
-		ballList.push_back(Ball(namesArray[i], sleepTime(gen), ballDirection(gen)));
-	}
+	// Init screen and window
+	initscr();
+	noecho();
+	curs_set(0);
+	start_color();
+	use_default_colors();
 
-	list<thread> threadList;
+	WINDOW *win = newwin(BOARD_WIDTH, BOARD_LENGTH, 15, 15);
 
-	int sleepTimeThread;
-	for (int i = 0; i < 13; i++) {
-		threadList.push_back(thread(moveBall, &(ballList[i])));
+	// Start basic threads
+	thread finishProgramThread(finishProgram);
+	thread printBoardThread(printBoard, win, &square);
+	thread moveSquareThread(moveSquare, &square);
+	
+	// Start balls threads
+	while (finish_flag != true) {
+		ballList.push_back(Ball(namesArray[nameIndex(gen)], sleepTime(gen), ballDirection(gen)));
+		threadList.push_back(thread(moveBall, &(ballList.back())));
 		this_thread::sleep_for(chrono::milliseconds(newThreadPause(gen)));
 	}
 
+	// Finish all threads
+	finishProgramThread.join();
 	printBoardThread.join();
 	moveSquareThread.join();
 	while(!threadList.empty()){

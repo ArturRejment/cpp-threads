@@ -32,7 +32,7 @@ void Square::setUpPosition(int position) {
 void Square::drawSpeed() {
     random_device rd;
 	mt19937 gen(rd());
-	uniform_int_distribution<> squareSpeed(100000, 1000000);
+	uniform_int_distribution<> squareSpeed(100, 600);
     this->speed = squareSpeed(gen);
 }
 
