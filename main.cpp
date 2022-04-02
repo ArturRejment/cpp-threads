@@ -105,10 +105,14 @@ void printBoard(WINDOW *win, Square *square) {
 	*/
 
 	while (1) {
+		
 		// Check stop condition
 		if (finish_flag == true) {
 			break;
 		}
+
+		werase(win);
+		box(win, 0, 0);
 
 		// Print all the balls on the screen
 		for (Ball ball : ballList) {
@@ -131,13 +135,12 @@ void printBoard(WINDOW *win, Square *square) {
 		wrefresh(win);
 
 		// Clear screen after 100ms
-		this_thread::sleep_for(100ms);
-		werase(win);
-		box(win, 0, 0);
+		this_thread::sleep_for(10ms);
 	}
 }
 
 void finishProgram() {
+	// Function that sets finish_flag after press 'q'
 	char choice;
 	while(choice != 'q'){
 		choice = getch();
@@ -150,24 +153,14 @@ int main(int argc, char** argv) {
 
 	random_device rd;
 	mt19937 gen(rd());
-	uniform_int_distribution<> sleepTime(300, 600);
+	uniform_int_distribution<> sleepTime(100, 1000);
 	uniform_int_distribution<> ballDirection(1, 3);
 	uniform_int_distribution<> squareSpeed(100, 600);
-	uniform_int_distribution<> newThreadPause(1000, 3000);
+	uniform_int_distribution<> newThreadPause(1000, 5000);
 	uniform_int_distribution<> nameIndex(0, 12);
 
-	initscr();
-	noecho();
-	curs_set(0);
-	WINDOW *win = newwin(BOARD_WIDTH, BOARD_LENGTH, 15, 15);
-	start_color();
-	use_default_colors();
-	box(win, 0, 0);
-
 	Square square = Square(10, 10);
-	thread finishProgramThread(finishProgram);
-	thread printBoardThread(printBoard, win, &square);
-	thread moveSquareThread(moveSquare, &square);
+	list<thread> threadList;
 
 	char *namesArray[13] = {
 		(char*)"O", 
@@ -185,15 +178,28 @@ int main(int argc, char** argv) {
 		(char*)"F",
 	};
 
+	// Init screen and window
+	initscr();
+	noecho();
+	curs_set(0);
+	start_color();
+	use_default_colors();
 
-	list<thread> threadList;
+	WINDOW *win = newwin(BOARD_WIDTH, BOARD_LENGTH, 15, 15);
 
+	// Start basic threads
+	thread finishProgramThread(finishProgram);
+	thread printBoardThread(printBoard, win, &square);
+	thread moveSquareThread(moveSquare, &square);
+	
+	// Start balls threads
 	while (finish_flag != true) {
 		ballList.push_back(Ball(namesArray[nameIndex(gen)], sleepTime(gen), ballDirection(gen)));
 		threadList.push_back(thread(moveBall, &(ballList.back())));
 		this_thread::sleep_for(chrono::milliseconds(newThreadPause(gen)));
 	}
 
+	// Finish all threads
 	finishProgramThread.join();
 	printBoardThread.join();
 	moveSquareThread.join();
