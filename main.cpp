@@ -57,7 +57,7 @@ void moveBall(Ball *ball) {
 
 		// Sleep to delay ball movement
 		int sl = ball->getSpeed();
-		usleep(sl);
+		this_thread::sleep_for(chrono::milliseconds(sl));
 	}
 }
 
@@ -94,7 +94,7 @@ void moveSquare(Square *square) {
 
 		// Sleep to delay square movement
 		int sl = square->getSpeed();
-		usleep(sl);
+		this_thread::sleep_for(chrono::milliseconds(sl));
 	}
 
 }
@@ -131,7 +131,7 @@ void printBoard(WINDOW *win, Square *square) {
 		wrefresh(win);
 
 		// Clear screen after 100ms
-		napms(100);
+		this_thread::sleep_for(100ms);
 		werase(win);
 		box(win, 0, 0);
 	}
@@ -150,9 +150,9 @@ int main(int argc, char** argv) {
 
 	random_device rd;
 	mt19937 gen(rd());
-	uniform_int_distribution<> sleepTime(300000, 600000);
+	uniform_int_distribution<> sleepTime(300, 600);
 	uniform_int_distribution<> ballDirection(1, 3);
-	uniform_int_distribution<> squareSpeed(100000, 600000);
+	uniform_int_distribution<> squareSpeed(100, 600);
 	uniform_int_distribution<> newThreadPause(1000, 3000);
 	uniform_int_distribution<> nameIndex(0, 12);
 
@@ -188,7 +188,6 @@ int main(int argc, char** argv) {
 
 	list<thread> threadList;
 
-	int sleepTimeThread;
 	while (finish_flag != true) {
 		ballList.push_back(Ball(namesArray[nameIndex(gen)], sleepTime(gen), ballDirection(gen)));
 		threadList.push_back(thread(moveBall, &(ballList.back())));
