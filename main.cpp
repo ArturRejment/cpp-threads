@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <thread>
+#include <mutex>
+#include <condition_variable>
 #include <list>
 #include <vector>
 #include <random>
@@ -148,8 +150,61 @@ void finishProgram() {
 	finish_flag = true;
 }
 
+condition_variable cv;
+mutex m;
+mutex m2;
+bool is_in_square = false;
+bool is_in_square_2 = false;
+
+void firstFunction() {
+	for(int i = 0; i < 5; i++) {
+		is_in_square = true;
+		is_in_square_2 = true;
+		cout << "Kulka w srodku" << endl;
+		cv.notify_all();
+		this_thread::sleep_for(2s);
+		is_in_square = false;
+		is_in_square_2 = false;
+		cout << "Kulka wyleciala" << endl << endl;
+		cv.notify_all();
+		this_thread::sleep_for(2s);
+	}
+
+}
+
+void secondFunction() {
+	unique_lock<mutex> lock(m);
+	for(int i = 0; i < 20; i++) {
+		cv.wait(lock, [](){return is_in_square ? false : true; });
+		cout<<"LECE 1"<<endl;
+		this_thread::sleep_for(400ms);
+	}
+
+}
+
+void thirdFunction() {
+	unique_lock<mutex> lock(m2);
+	for(int i = 0; i < 20; i++) {
+		cv.wait(lock, [](){return is_in_square_2 ? false : true; });
+		cout<<"LECE 2"<<endl;
+		this_thread::sleep_for(400ms);
+	}
+
+}
+
+void test() {
+	thread t1(firstFunction);
+	thread t2(secondFunction);
+	thread t3(thirdFunction);
+	t1.join();
+	t2.join();
+	t3.join();
+}
+
 
 int main(int argc, char** argv) {
+	test();
+	return 0;
 
 	random_device rd;
 	mt19937 gen(rd());
@@ -212,3 +267,5 @@ int main(int argc, char** argv) {
 
 	return 0;
 }
+
+// kulka wchodzi do prostokata ale jak jest to moze wykonac jedno przesuniecie po czym ulega uspieniu do czasu az prostokat z niej zjedzie 
