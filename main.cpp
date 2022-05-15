@@ -70,6 +70,7 @@ void printBoard(WINDOW *win, Square *square, list<Ball> &ballList, condition_var
 	mutex m;
 	unique_lock<mutex> lk(m);
 
+	init_pair(1, COLOR_YELLOW, COLOR_GREEN);
 	while (1) {
 		showLock.wait(lk);
 		
@@ -80,23 +81,7 @@ void printBoard(WINDOW *win, Square *square, list<Ball> &ballList, condition_var
 
 		werase(win);
 		box(win, 0, 0);
-		// Print all the balls on the screen
-
-		for (Ball &ball : ballList) {
-			if (ball.getBounceNumber() >= 5) {
-				continue;
-			}
-			// if (ball.isInSquare(square->getUpPosition(), square->getLength(), square->getHeight())) {
-			// 	ball.is_sleeping = true;
-			// 	continue;
-			// }
-			// else {
-			// 	ball.is_sleeping = false;
-			cout << ball.xPosition << ball.yPosition<<endl;
-			// }
-			mvwprintw(win, ball.getXPosition(), ball.getYPosition(), ball.getName());
-		}
-
+		
 		// Print square on the screen
 		wattron(win, A_STANDOUT);
 		for(int i = 0; i < square->getLength(); i++){
@@ -105,6 +90,23 @@ void printBoard(WINDOW *win, Square *square, list<Ball> &ballList, condition_var
 			}
 		}
 		wattroff(win, A_STANDOUT);
+
+		// Print all the balls on the screen
+		for (Ball &ball : ballList) {
+			if (ball.getBounceNumber() >= 5) {
+				continue;
+			}
+			if (ball.isInSquare(square->getUpPosition(), square->getLength(), square->getHeight())) {
+				ball.is_sleeping = true;
+			}
+			else {
+				ball.is_sleeping = false;
+			}
+			wattron(win, COLOR_PAIR(1));
+			mvwprintw(win, ball.getXPosition(), ball.getYPosition(), ball.getName());
+			wattroff(win, COLOR_PAIR(1));
+		}
+
 		
 		// Refresh the window
 		wrefresh(win);
@@ -158,7 +160,7 @@ int main(int argc, char** argv) {
 	
 
 	// Init screen and window
-	// initscr();
+	initscr();
 	noecho();
 	curs_set(0);
 	start_color();
@@ -170,14 +172,13 @@ int main(int argc, char** argv) {
 	// Start basic threads
 	thread finishProgramThread(finishProgram);
 	thread printBoardThread(printBoard, win, &square, ref(ballList), ref(sh));
-	thread moveSquareThread(moveSquare, &square);
+    thread moveSquareThread(moveSquare, &square);
 	
 	// Start balls threads
-	// cout<<finish_flag;
 	while (finish_flag != true) {
 		readd.lock();
-		ballList.push_back(Ball(namesArray[nameIndex(gen)], sleepTime(gen), ballDirection(gen), ref(sh)));
-		threadList.push_back(thread(&Ball::moveBall, ballList.back()));
+		ballList.push_front(Ball(namesArray[nameIndex(gen)], sleepTime(gen), ballDirection(gen), ref(sh)));
+		threadList.push_back(thread(&Ball::moveBall, ballList.begin()));
 		readd.unlock();
 		this_thread::sleep_for(chrono::milliseconds(newThreadPause(gen)));
 	}

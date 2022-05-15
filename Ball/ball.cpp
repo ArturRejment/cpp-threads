@@ -26,21 +26,20 @@ Ball::Ball(const char* name, int speed, int ballDirection, condition_variable &s
 Ball::~Ball() {}
 
 bool Ball::isInSquare(int leftUpPosition, int length, int height) {
-    if(xPosition > 10 && xPosition < 10+length && yPosition > leftUpPosition && yPosition < leftUpPosition+height) {
+    if(yPosition > 10 && yPosition < 10+length && xPosition > leftUpPosition && xPosition < leftUpPosition+height) {
         return true;
     }
     return false;
 }
 
 void Ball::moveBall() {
-	static mutex m;
+	// static mutex m;
 
 	while(1){
-        unique_lock<mutex> lk(m);
-		// if (this->is_sleeping) {
-		// 	continue;
-		// 	this->cv;
-		// }
+        // unique_lock<mutex> lk(m);
+		if (this->is_sleeping) {
+			continue;
+		}
 		
 		
 		// Bottom 
@@ -71,6 +70,10 @@ void Ball::moveBall() {
 
         this->xPosition += this->xDelta;
         this->yPosition += this->yDelta;
+        xPosition = static_cast<int>(xPosition);
+        yPosition = static_cast<int>(yPosition);
+        // cout << "NOT MAIN" << this->name << " " << this << xPosition << " " <<yPosition <<endl;
+    
         show.notify_one();
         
 
