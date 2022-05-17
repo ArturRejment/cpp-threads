@@ -33,15 +33,10 @@ bool Ball::isInSquare(int leftUpPosition, int length, int height) {
 }
 
 void Ball::moveBall() {
-	// static mutex m;
+	static mutex m;
 
 	while(1){
-        // unique_lock<mutex> lk(m);
-		if (this->is_sleeping) {
-			continue;
-		}
-		
-		
+
 		// Bottom 
 		if (xPosition == BOARD_WIDTH-2) {
 			this->bounceX();
@@ -72,10 +67,18 @@ void Ball::moveBall() {
         this->yPosition += this->yDelta;
         xPosition = static_cast<int>(xPosition);
         yPosition = static_cast<int>(yPosition);
-        // cout << "NOT MAIN" << this->name << " " << this << xPosition << " " <<yPosition <<endl;
     
+		// Sleep thread
+		{
+    		unique_lock<mutex> lk(m);
+
+			if (this->is_sleeping){
+				cv.wait(lk);
+				this->is_sleeping = false;
+			}
+		}
+
         show.notify_one();
-        
 
 		// Sleep to delay ball movement
 		int sl = this->speed; 

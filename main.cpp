@@ -70,7 +70,7 @@ void printBoard(WINDOW *win, Square *square, list<Ball> &ballList, condition_var
 	mutex m;
 	unique_lock<mutex> lk(m);
 
-	init_pair(1, COLOR_YELLOW, COLOR_GREEN);
+	init_pair(1, COLOR_BLACK, COLOR_YELLOW);
 	while (1) {
 		showLock.wait(lk);
 		
@@ -100,7 +100,7 @@ void printBoard(WINDOW *win, Square *square, list<Ball> &ballList, condition_var
 				ball.is_sleeping = true;
 			}
 			else {
-				ball.is_sleeping = false;
+				ball.cv.notify_one();
 			}
 			wattron(win, COLOR_PAIR(1));
 			mvwprintw(win, ball.getXPosition(), ball.getYPosition(), ball.getName());
@@ -168,7 +168,6 @@ int main(int argc, char** argv) {
 
 	WINDOW *win = newwin(BOARD_WIDTH, BOARD_LENGTH, 15, 15);
 
-	// thread newthread(&Ball::moveBall, ballList.back());
 	// Start basic threads
 	thread finishProgramThread(finishProgram);
 	thread printBoardThread(printBoard, win, &square, ref(ballList), ref(sh));
@@ -176,16 +175,14 @@ int main(int argc, char** argv) {
 	
 	// Start balls threads
 	while (finish_flag != true) {
-		readd.lock();
 		ballList.push_front(Ball(namesArray[nameIndex(gen)], sleepTime(gen), ballDirection(gen), ref(sh)));
 		threadList.push_back(thread(&Ball::moveBall, ballList.begin()));
-		readd.unlock();
 		this_thread::sleep_for(chrono::milliseconds(newThreadPause(gen)));
 	}
 
 	// Finish all threads
 	finishProgramThread.join();
-	sh.notify_all();
+	sh.notify_one();
 	printBoardThread.join();
 	moveSquareThread.join();
 	while(!threadList.empty()){
@@ -197,5 +194,3 @@ int main(int argc, char** argv) {
 
 	return 0;
 }
-
-// kulka wchodzi do prostokata ale jak jest to moze wykonac jedno przesuniecie po czym ulega uspieniu do czasu az prostokat z niej zjedzie 
