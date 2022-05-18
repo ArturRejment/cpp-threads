@@ -1,3 +1,6 @@
+#ifndef _SQUARE_
+#define _SQUARE_
+
 class Square {
     private:
         int upLeftCornerPosition;
@@ -18,3 +21,5 @@ class Square {
         int getLength();
         int getHeight();
 };
+
+#endif
