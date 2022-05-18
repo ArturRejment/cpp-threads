@@ -1,8 +1,12 @@
 #include<iostream>
+#include "../Square/square.h"
 using namespace std;
 
+#ifndef _BALL_
+#define _BALL_
+
 class Ball {
-	public:
+	private:
 		const char* name;
 		int xPosition;
 		int yPosition;
@@ -13,15 +17,19 @@ class Ball {
 
 		bool is_sleeping;
 		condition_variable cv;
-		condition_variable &show;
 
+	public:
         Ball(const Ball&);
-        Ball(const char* name, int speed, int ballDirection, condition_variable &show);
+        Ball(const char* name, int speed, int ballDirection);
         ~Ball();
 
-		bool isInSquare(int LeftUpPosition, int length, int height);
+		bool isInSquare(Square square);
 		void moveBall();
+		void notify();
+		void sleep();
+		void wakeUp();
 
+		// Getters and setters
 		int getXPosition();
 		void setXPosition(int position);
 		int getYPosition();
@@ -35,3 +43,5 @@ class Ball {
 		int getXDelta();
 		int getYDelta();
 };
+
+#endif

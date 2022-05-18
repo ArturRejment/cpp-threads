@@ -24,7 +24,7 @@ mutex readd;
 bool flag = true;
 
 
-void moveSquare(Square *square) {
+void moveSquare(Square *square, list<Ball> &ballList) {
 	/*
 	Function responsible for moving the square up and down - depending on a position
 	*/
@@ -62,17 +62,13 @@ void moveSquare(Square *square) {
 
 }
 
-void printBoard(WINDOW *win, Square *square, list<Ball> &ballList, condition_variable &showLock) {
+void printBoard(WINDOW *win, Square *square, list<Ball> &ballList) {
 	/*
 	Function responsible for printing the board on the screen using ncurses
 	*/
 
-	mutex m;
-	unique_lock<mutex> lk(m);
-
 	init_pair(1, COLOR_BLACK, COLOR_YELLOW);
 	while (1) {
-		showLock.wait(lk);
 		
 		// Check stop condition
 		if (finish_flag == true) {
@@ -96,23 +92,24 @@ void printBoard(WINDOW *win, Square *square, list<Ball> &ballList, condition_var
 			if (ball.getBounceNumber() >= 5) {
 				continue;
 			}
-			if (ball.isInSquare(square->getUpPosition(), square->getLength(), square->getHeight())) {
-				ball.is_sleeping = true;
+
+			if (ball.isInSquare(*square)) {
+				ball.sleep();
 			}
 			else {
-				ball.cv.notify_one();
+				ball.wakeUp();
 			}
+
 			wattron(win, COLOR_PAIR(1));
 			mvwprintw(win, ball.getXPosition(), ball.getYPosition(), ball.getName());
 			wattroff(win, COLOR_PAIR(1));
 		}
-
 		
 		// Refresh the window
 		wrefresh(win);
 
 		// Clear screen after 100ms
-		this_thread::sleep_for(10ms);
+		this_thread::sleep_for(1ms);
 	}
 }
 
@@ -139,8 +136,6 @@ int main(int argc, char** argv) {
 	Square square = Square(10, 10);
 	list<thread> threadList;
 	list<Ball> ballList;
-	mutex ShowLock;
-	condition_variable sh;
 
 	char *namesArray[13] = {
 		(char*)"O", 
@@ -170,21 +165,23 @@ int main(int argc, char** argv) {
 
 	// Start basic threads
 	thread finishProgramThread(finishProgram);
-	thread printBoardThread(printBoard, win, &square, ref(ballList), ref(sh));
-    thread moveSquareThread(moveSquare, &square);
+	thread printBoardThread(printBoard, win, &square, ref(ballList));
+    thread moveSquareThread(moveSquare, &square, ref(ballList));
 	
 	// Start balls threads
 	while (finish_flag != true) {
-		ballList.push_front(Ball(namesArray[nameIndex(gen)], sleepTime(gen), ballDirection(gen), ref(sh)));
+		ballList.push_front(Ball(namesArray[nameIndex(gen)], sleepTime(gen), ballDirection(gen)));
 		threadList.push_back(thread(&Ball::moveBall, ballList.begin()));
 		this_thread::sleep_for(chrono::milliseconds(newThreadPause(gen)));
 	}
 
 	// Finish all threads
 	finishProgramThread.join();
-	sh.notify_one();
 	printBoardThread.join();
 	moveSquareThread.join();
+	for (Ball &ball : ballList) {
+		ball.wakeUp();
+	}
 	while(!threadList.empty()){
 		threadList.front().join();
 		threadList.pop_front();

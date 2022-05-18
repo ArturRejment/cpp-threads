@@ -1,5 +1,8 @@
 #include "square.h"
 
+#ifndef _SQUARE_IMPL_
+#define _SQUARE_IMPL_
+
 Square::Square(int length, int height){
     this->length = length;
     this->height = height;
@@ -47,3 +50,5 @@ int Square::getLength() {
 int Square::getHeight() {
     return this->height;
 }
+
+#endif
