@@ -2,7 +2,7 @@
 using namespace std;
 
 class Ball {
-	private:
+	public:
 		const char* name;
 		int xPosition;
 		int yPosition;
@@ -11,10 +11,16 @@ class Ball {
 		int xDelta;
 		int yDelta;
 
-	public:
-        Ball();
-        Ball(const char* name, int speed, int ballDirection);
+		bool is_sleeping;
+		condition_variable cv;
+		condition_variable &show;
+
+        Ball(const Ball&);
+        Ball(const char* name, int speed, int ballDirection, condition_variable &show);
         ~Ball();
+
+		bool isInSquare(int LeftUpPosition, int length, int height);
+		void moveBall();
 
 		int getXPosition();
 		void setXPosition(int position);

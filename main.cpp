@@ -9,59 +9,20 @@
 #include <vector>
 #include <random>
 #include <chrono>
+
+const int BOARD_LENGTH = 71;
+const int BOARD_WIDTH = 30;
+bool finish_flag = false;
+
+
 #include "Ball/ball.cpp"
 #include "Square/square.cpp"
 
 using namespace std;
+mutex readd;
 
-const int BOARD_LENGTH = 71;
-const int BOARD_WIDTH = 30;
+bool flag = true;
 
-bool finish_flag = false;
-
-list<Ball> ballList;
-
-void moveBall(Ball *ball) {
-	// Ball *ball = (Ball*)arg;
-	int x, y;
-	while(1){
-		x = ball->getXPosition();
-		y = ball->getYPosition();
-		
-		// Bottom 
-		if (x == BOARD_WIDTH-2) {
-			ball->bounceX();
-			ball->incrementBounceNumber();
-		}
-		// Upper
-		else if (x == 1) {
-			ball->bounceX();
-			ball->incrementBounceNumber();
-		}
-
-		// Right
-		if (y == BOARD_LENGTH-2) {
-			ball->bounceY();
-			ball->incrementBounceNumber();
-		}
-		// Left
-		else if (y == 1){
-			ball->bounceY();
-			ball->incrementBounceNumber();
-		}
-
-		if (ball->getBounceNumber() >= 5 || finish_flag == true) {
-			break;
-		}
-
-		ball->setXPosition(x + ball->getXDelta());
-		ball->setYPosition(y + ball->getYDelta());
-
-		// Sleep to delay ball movement
-		int sl = ball->getSpeed();
-		this_thread::sleep_for(chrono::milliseconds(sl));
-	}
-}
 
 void moveSquare(Square *square) {
 	/*
@@ -101,12 +62,17 @@ void moveSquare(Square *square) {
 
 }
 
-void printBoard(WINDOW *win, Square *square) {
+void printBoard(WINDOW *win, Square *square, list<Ball> &ballList, condition_variable &showLock) {
 	/*
 	Function responsible for printing the board on the screen using ncurses
 	*/
 
+	mutex m;
+	unique_lock<mutex> lk(m);
+
+	init_pair(1, COLOR_BLACK, COLOR_YELLOW);
 	while (1) {
+		showLock.wait(lk);
 		
 		// Check stop condition
 		if (finish_flag == true) {
@@ -115,15 +81,7 @@ void printBoard(WINDOW *win, Square *square) {
 
 		werase(win);
 		box(win, 0, 0);
-
-		// Print all the balls on the screen
-		for (Ball ball : ballList) {
-			if (ball.getBounceNumber() >= 5) {
-				continue;
-			}
-			mvwprintw(win, ball.getXPosition(), ball.getYPosition(), ball.getName());
-		}
-
+		
 		// Print square on the screen
 		wattron(win, A_STANDOUT);
 		for(int i = 0; i < square->getLength(); i++){
@@ -132,6 +90,23 @@ void printBoard(WINDOW *win, Square *square) {
 			}
 		}
 		wattroff(win, A_STANDOUT);
+
+		// Print all the balls on the screen
+		for (Ball &ball : ballList) {
+			if (ball.getBounceNumber() >= 5) {
+				continue;
+			}
+			if (ball.isInSquare(square->getUpPosition(), square->getLength(), square->getHeight())) {
+				ball.is_sleeping = true;
+			}
+			else {
+				ball.cv.notify_one();
+			}
+			wattron(win, COLOR_PAIR(1));
+			mvwprintw(win, ball.getXPosition(), ball.getYPosition(), ball.getName());
+			wattroff(win, COLOR_PAIR(1));
+		}
+
 		
 		// Refresh the window
 		wrefresh(win);
@@ -150,61 +125,8 @@ void finishProgram() {
 	finish_flag = true;
 }
 
-condition_variable cv;
-mutex m;
-mutex m2;
-bool is_in_square = false;
-bool is_in_square_2 = false;
-
-void firstFunction() {
-	for(int i = 0; i < 5; i++) {
-		is_in_square = true;
-		is_in_square_2 = true;
-		cout << "Kulka w srodku" << endl;
-		cv.notify_all();
-		this_thread::sleep_for(2s);
-		is_in_square = false;
-		is_in_square_2 = false;
-		cout << "Kulka wyleciala" << endl << endl;
-		cv.notify_all();
-		this_thread::sleep_for(2s);
-	}
-
-}
-
-void secondFunction() {
-	unique_lock<mutex> lock(m);
-	for(int i = 0; i < 20; i++) {
-		cv.wait(lock, [](){return is_in_square ? false : true; });
-		cout<<"LECE 1"<<endl;
-		this_thread::sleep_for(400ms);
-	}
-
-}
-
-void thirdFunction() {
-	unique_lock<mutex> lock(m2);
-	for(int i = 0; i < 20; i++) {
-		cv.wait(lock, [](){return is_in_square_2 ? false : true; });
-		cout<<"LECE 2"<<endl;
-		this_thread::sleep_for(400ms);
-	}
-
-}
-
-void test() {
-	thread t1(firstFunction);
-	thread t2(secondFunction);
-	thread t3(thirdFunction);
-	t1.join();
-	t2.join();
-	t3.join();
-}
-
 
 int main(int argc, char** argv) {
-	test();
-	return 0;
 
 	random_device rd;
 	mt19937 gen(rd());
@@ -216,6 +138,9 @@ int main(int argc, char** argv) {
 
 	Square square = Square(10, 10);
 	list<thread> threadList;
+	list<Ball> ballList;
+	mutex ShowLock;
+	condition_variable sh;
 
 	char *namesArray[13] = {
 		(char*)"O", 
@@ -232,6 +157,7 @@ int main(int argc, char** argv) {
 		(char*)"Z",
 		(char*)"F",
 	};
+	
 
 	// Init screen and window
 	initscr();
@@ -244,18 +170,19 @@ int main(int argc, char** argv) {
 
 	// Start basic threads
 	thread finishProgramThread(finishProgram);
-	thread printBoardThread(printBoard, win, &square);
-	thread moveSquareThread(moveSquare, &square);
+	thread printBoardThread(printBoard, win, &square, ref(ballList), ref(sh));
+    thread moveSquareThread(moveSquare, &square);
 	
 	// Start balls threads
 	while (finish_flag != true) {
-		ballList.push_back(Ball(namesArray[nameIndex(gen)], sleepTime(gen), ballDirection(gen)));
-		threadList.push_back(thread(moveBall, &(ballList.back())));
+		ballList.push_front(Ball(namesArray[nameIndex(gen)], sleepTime(gen), ballDirection(gen), ref(sh)));
+		threadList.push_back(thread(&Ball::moveBall, ballList.begin()));
 		this_thread::sleep_for(chrono::milliseconds(newThreadPause(gen)));
 	}
 
 	// Finish all threads
 	finishProgramThread.join();
+	sh.notify_one();
 	printBoardThread.join();
 	moveSquareThread.join();
 	while(!threadList.empty()){
@@ -267,5 +194,3 @@ int main(int argc, char** argv) {
 
 	return 0;
 }
-
-// kulka wchodzi do prostokata ale jak jest to moze wykonac jedno przesuniecie po czym ulega uspieniu do czasu az prostokat z niej zjedzie 
