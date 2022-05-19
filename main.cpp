@@ -127,7 +127,7 @@ int main(int argc, char** argv) {
 
 	random_device rd;
 	mt19937 gen(rd());
-	uniform_int_distribution<> sleepTime(100, 1000);
+	uniform_int_distribution<> sleepTime(400, 1000);
 	uniform_int_distribution<> ballDirection(1, 3);
 	uniform_int_distribution<> squareSpeed(100, 600);
 	uniform_int_distribution<> newThreadPause(1000, 5000);
