@@ -15,10 +15,12 @@ class Ball {
 		int xDelta;
 		int yDelta;
 
-		bool is_sleeping;
 		condition_variable cv;
 
 	public:
+		bool is_sleeping;
+		bool nowSleeping;
+
         Ball(const Ball&);
         Ball(const char* name, int speed, int ballDirection);
         ~Ball();
@@ -42,6 +44,7 @@ class Ball {
 		void bounceY();
 		int getXDelta();
 		int getYDelta();
+		bool getIsSleeping();
 };
 
 #endif
