@@ -116,6 +116,22 @@ void printBoard(WINDOW *win, Square *square, list<Ball> &ballList) {
 	}
 }
 
+void change_counter(list<Ball> &ballList){
+
+	int temp_counter;
+	while (!finish_flag){
+
+		temp_counter = 0;
+		for (Ball &ball : ballList) {
+			if (ball.is_sleeping) {
+				temp_counter++;
+			}
+		}
+		counter = temp_counter;
+	}
+
+}
+
 void finishProgram() {
 	// Function that sets finish_flag after press 'q'
 	char choice;
@@ -170,6 +186,7 @@ int main(int argc, char** argv) {
 	thread finishProgramThread(finishProgram);
 	thread printBoardThread(printBoard, win, &square, ref(ballList));
     thread moveSquareThread(moveSquare, &square, ref(ballList));
+	thread counterThread(change_counter, ref(ballList));
 	
 	// Start balls threads
 	while (finish_flag != true) {
@@ -182,6 +199,7 @@ int main(int argc, char** argv) {
 	finishProgramThread.join();
 	printBoardThread.join();
 	moveSquareThread.join();
+	counterThread.join();
 	for (Ball &ball : ballList) {
 		ball.wakeUp();
 	}

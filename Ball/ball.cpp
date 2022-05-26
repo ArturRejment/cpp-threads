@@ -4,7 +4,7 @@
 #define _BALL_IMPL_
 
 Ball::Ball(const Ball& b)
-    : xPosition(b.xPosition), yPosition(b.yPosition), name(b.name), speed(b.speed), xDelta(b.xDelta), yDelta(b.yDelta), bounceNumber(b.bounceNumber) {
+    : xPosition(b.xPosition), yPosition(b.yPosition), name(b.name), speed(b.speed), xDelta(b.xDelta), yDelta(b.yDelta), bounceNumber(b.bounceNumber), nowSleeping(b.nowSleeping) {
     }
 
 Ball::Ball(const char* name, int speed, int ballDirection) {
@@ -15,6 +15,7 @@ Ball::Ball(const char* name, int speed, int ballDirection) {
     this->xDelta = 1;
     this->bounceNumber = 0;
     this->is_sleeping = false;
+	this->nowSleeping = false;
     if (ballDirection == 1) {
         this->yDelta = 1;
     }
@@ -78,6 +79,7 @@ void Ball::moveBall() {
     		unique_lock<mutex> lk(m);
 
 			while (this->is_sleeping){
+				this->nowSleeping = true;
 				cv.wait(lk);
 			}
 		}
@@ -89,8 +91,11 @@ void Ball::moveBall() {
 }
 
 void Ball::wakeUp() {
+	if (!is_sleeping) return;
+
 	this->cv.notify_one(); 
 	is_sleeping=false;
+	nowSleeping=false;
 }
 
 void Ball::sleep() {this->is_sleeping = true;}
@@ -118,5 +123,7 @@ void Ball::incrementBounceNumber() {this->bounceNumber++;}
 void Ball::bounceX() {this->xDelta *= -1;}
 
 void Ball::bounceY() {this->yDelta *= -1;}
+
+bool Ball::getIsSleeping() {this->is_sleeping;}
 
 #endif
