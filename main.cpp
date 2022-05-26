@@ -20,6 +20,7 @@ bool finish_flag = false;
 
 using namespace std;
 mutex readd;
+int counter = 0;
 
 bool flag = true;
 
@@ -104,6 +105,8 @@ void printBoard(WINDOW *win, Square *square, list<Ball> &ballList) {
 			mvwprintw(win, ball.getXPosition(), ball.getYPosition(), ball.getName());
 			wattroff(win, COLOR_PAIR(1));
 		}
+
+		mvwprintw(win, 15, 35, "%d", counter);
 		
 		// Refresh the window
 		wrefresh(win);
@@ -127,7 +130,7 @@ int main(int argc, char** argv) {
 
 	random_device rd;
 	mt19937 gen(rd());
-	uniform_int_distribution<> sleepTime(100, 1000);
+	uniform_int_distribution<> sleepTime(400, 1000);
 	uniform_int_distribution<> ballDirection(1, 3);
 	uniform_int_distribution<> squareSpeed(100, 600);
 	uniform_int_distribution<> newThreadPause(1000, 5000);
@@ -191,3 +194,5 @@ int main(int argc, char** argv) {
 
 	return 0;
 }
+
+// Wyswietlic na srodku ekranu liczbe uspionych kulek

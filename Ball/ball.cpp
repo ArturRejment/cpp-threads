@@ -77,9 +77,8 @@ void Ball::moveBall() {
 		{
     		unique_lock<mutex> lk(m);
 
-			if (this->is_sleeping){
+			while (this->is_sleeping){
 				cv.wait(lk);
-				this->is_sleeping = false;
 			}
 		}
 
@@ -89,7 +88,10 @@ void Ball::moveBall() {
 	}
 }
 
-void Ball::wakeUp() {this->cv.notify_one();}
+void Ball::wakeUp() {
+	this->cv.notify_one(); 
+	is_sleeping=false;
+}
 
 void Ball::sleep() {this->is_sleeping = true;}
 
