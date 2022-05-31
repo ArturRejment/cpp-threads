@@ -4,10 +4,10 @@
 #define _BALL_IMPL_
 
 Ball::Ball(const Ball& b)
-    : xPosition(b.xPosition), yPosition(b.yPosition), name(b.name), speed(b.speed), xDelta(b.xDelta), yDelta(b.yDelta), bounceNumber(b.bounceNumber), nowSleeping(b.nowSleeping) {
+    : xPosition(b.xPosition), yPosition(b.yPosition), name(b.name), speed(b.speed), xDelta(b.xDelta), yDelta(b.yDelta), bounceNumber(b.bounceNumber), nowSleeping(b.nowSleeping), ball_counter_lock(b.ball_counter_lock) {
     }
 
-Ball::Ball(const char* name, int speed, int ballDirection) {
+Ball::Ball(const char* name, int speed, int ballDirection, condition_variable &cond) : ball_counter_lock(cond) {
     this->xPosition = 28;
     this->yPosition = 35;
     this->name = name;
@@ -79,7 +79,6 @@ void Ball::moveBall() {
     		unique_lock<mutex> lk(m);
 
 			while (this->is_sleeping){
-				this->nowSleeping = true;
 				cv.wait(lk);
 			}
 		}
@@ -91,14 +90,15 @@ void Ball::moveBall() {
 }
 
 void Ball::wakeUp() {
-	if (!is_sleeping) return;
-
-	this->cv.notify_one(); 
 	is_sleeping=false;
-	nowSleeping=false;
+	ball_counter_lock.notify_one();
+	this->cv.notify_one(); 
 }
 
-void Ball::sleep() {this->is_sleeping = true;}
+void Ball::sleep() {
+	this->is_sleeping = true; 
+	ball_counter_lock.notify_one();
+}
 
 int Ball::getXPosition() {return this->xPosition;}
 
