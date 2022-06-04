@@ -13,6 +13,7 @@
 const int BOARD_LENGTH = 71;
 const int BOARD_WIDTH = 30;
 bool finish_flag = false;
+bool counter_ready = false;
 
 
 #include "Ball/ball.cpp"
@@ -56,6 +57,19 @@ void moveSquare(Square *square, list<Ball> &ballList) {
 			}
 		}
 
+		for (Ball &ball : ballList) {
+			if (ball.getBounceNumber() >= 5) {
+				continue;
+			}
+
+			if (ball.isInSquare(*square) && !ball.is_sleeping) {
+				ball.sleep();
+			}
+			else if (!ball.isInSquare(*square) && ball.is_sleeping) {
+				ball.wakeUp();
+			}
+		}
+
 		// Sleep to delay square movement
 		int sl = square->getSpeed();
 		this_thread::sleep_for(chrono::milliseconds(sl));
@@ -94,13 +108,6 @@ void printBoard(WINDOW *win, Square *square, list<Ball> &ballList) {
 				continue;
 			}
 
-			if (ball.isInSquare(*square) && !ball.is_sleeping) {
-				ball.sleep();
-			}
-			else if (!ball.isInSquare(*square) && ball.is_sleeping) {
-				ball.wakeUp();
-			}
-
 			wattron(win, COLOR_PAIR(1));
 			mvwprintw(win, ball.getXPosition(), ball.getYPosition(), ball.getName());
 			wattroff(win, COLOR_PAIR(1));
@@ -122,7 +129,9 @@ void change_counter(list<Ball> &ballList, condition_variable &counter_lock){
 
 	int temp_counter;
 	while (!finish_flag){
-		counter_lock.wait(lk);
+		while (!counter_ready) {
+			counter_lock.wait(lk);
+		}
 
 		temp_counter = 0;
 		for (Ball &ball : ballList) {
@@ -131,6 +140,7 @@ void change_counter(list<Ball> &ballList, condition_variable &counter_lock){
 			}
 		}
 		counter = temp_counter;
+		counter_ready = false;
 	}
 
 }
@@ -204,6 +214,7 @@ int main(int argc, char** argv) {
 	finishProgramThread.join();
 	printBoardThread.join();
 	moveSquareThread.join();
+	counter_ready = true;
 	counter_lock.notify_all();
 	counterThread.join();
 	for (Ball &ball : ballList) {

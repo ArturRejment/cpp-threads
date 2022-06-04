@@ -90,13 +90,15 @@ void Ball::moveBall() {
 }
 
 void Ball::wakeUp() {
-	is_sleeping=false;
+	is_sleeping = false;
+	counter_ready = true;
 	ball_counter_lock.notify_one();
 	this->cv.notify_one(); 
 }
 
 void Ball::sleep() {
 	this->is_sleeping = true; 
+	counter_ready = true;
 	ball_counter_lock.notify_one();
 }
 
