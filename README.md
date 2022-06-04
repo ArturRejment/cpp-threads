@@ -1,17 +1,17 @@
 # Systemy Operacyjne 2 - Projekt
 
-## Zalozenia projektowe
+## Założenia projektowe
 
-Projekt polega na zapoznaniu sie i wykorzystaniu watkow w jezyku c++. Wykorzystane zostaly biblioteki thread, mutex oraz condition_variable do obslugi oraz synchronizacji watkow. Do wizualizacji (GUI) zostala wykorzystana biblioteka ncurses.
+Projekt polega na zapoznaniu się i wykorzystaniu wątków w jezyku c++. Wykorzystane zostały biblioteki thread, mutex oraz condition_variable do obsługi oraz synchronizacji wątków. Do wizualizacji (GUI) została wykorzystana biblioteka ncurses.
 
 ## Etap 1
 
-Zadanie polega na narysowaniu planszy o konkretnych wymiarach. Na plansze, w losowych odstepach czasu, wpadaja kulki poruszajace sie po planszy. Kulki odbijaja sie od krawedzi, po 5 odbiciach kulka znika. Dodawkowo, po planszy w pionie porusza sie kwadrat/prostokat.
+Zadanie polega na narysowaniu planszy o konkretnych wymiarach. Na planszę, w losowych odstępach czasu, wpadają kulki poruszajace sie po planszy. Kulki odbijają się od krawędzi, po 5 odbiciach kulka znika. Dodawkowo, po planszy w pionie porusza sie kwadrat/prostokąt.
 
 ## Etap 2
 
-Rozszerzenie programu o mutexy. Kulki ktore wpadna do prostokatu zatrzymuja sie, dopoki prostokat z nich nie zejdzie.
+Rozszerzenie programu o mutexy. Kulki ktore wpadna do prostokatu zatrzymują sie, dopóki prostokąt z nich nie zejdzie.
 
 ## Etap 3 
 
-Wyeliminowanie petli goracego czekania. Na srodku planszy nalezy wyswietlic licznik pokazujacy ile kulek jest uspionych/zatrzymanych.
+Wyeliminowanie pętli gorącego czekania. Na środku planszy należy wyswietlic licznik pokazujacy ile kulek jest uśpionych/zatrzymanych.
