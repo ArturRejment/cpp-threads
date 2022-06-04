@@ -16,13 +16,14 @@ class Ball {
 		int yDelta;
 
 		condition_variable cv;
+		condition_variable &ball_counter_lock;
 
 	public:
 		bool is_sleeping;
 		bool nowSleeping;
 
         Ball(const Ball&);
-        Ball(const char* name, int speed, int ballDirection);
+        Ball(const char* name, int speed, int ballDirection, condition_variable &cond);
         ~Ball();
 
 		bool isInSquare(Square square);

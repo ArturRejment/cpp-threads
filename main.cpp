@@ -13,6 +13,7 @@
 const int BOARD_LENGTH = 71;
 const int BOARD_WIDTH = 30;
 bool finish_flag = false;
+bool counter_ready = false;
 
 
 #include "Ball/ball.cpp"
@@ -56,6 +57,19 @@ void moveSquare(Square *square, list<Ball> &ballList) {
 			}
 		}
 
+		for (Ball &ball : ballList) {
+			if (ball.getBounceNumber() >= 5) {
+				continue;
+			}
+
+			if (ball.isInSquare(*square) && !ball.is_sleeping) {
+				ball.sleep();
+			}
+			else if (!ball.isInSquare(*square) && ball.is_sleeping) {
+				ball.wakeUp();
+			}
+		}
+
 		// Sleep to delay square movement
 		int sl = square->getSpeed();
 		this_thread::sleep_for(chrono::milliseconds(sl));
@@ -94,13 +108,6 @@ void printBoard(WINDOW *win, Square *square, list<Ball> &ballList) {
 				continue;
 			}
 
-			if (ball.isInSquare(*square)) {
-				ball.sleep();
-			}
-			else {
-				ball.wakeUp();
-			}
-
 			wattron(win, COLOR_PAIR(1));
 			mvwprintw(win, ball.getXPosition(), ball.getYPosition(), ball.getName());
 			wattroff(win, COLOR_PAIR(1));
@@ -112,14 +119,19 @@ void printBoard(WINDOW *win, Square *square, list<Ball> &ballList) {
 		wrefresh(win);
 
 		// Clear screen after 100ms
-		this_thread::sleep_for(1ms);
+		this_thread::sleep_for(10ms);
 	}
 }
 
-void change_counter(list<Ball> &ballList){
+void change_counter(list<Ball> &ballList, condition_variable &counter_lock){
+	mutex m;
+	unique_lock<mutex> lk(m);
 
 	int temp_counter;
 	while (!finish_flag){
+		while (!counter_ready) {
+			counter_lock.wait(lk);
+		}
 
 		temp_counter = 0;
 		for (Ball &ball : ballList) {
@@ -128,6 +140,7 @@ void change_counter(list<Ball> &ballList){
 			}
 		}
 		counter = temp_counter;
+		counter_ready = false;
 	}
 
 }
@@ -151,6 +164,8 @@ int main(int argc, char** argv) {
 	uniform_int_distribution<> squareSpeed(100, 600);
 	uniform_int_distribution<> newThreadPause(1000, 5000);
 	uniform_int_distribution<> nameIndex(0, 12);
+
+	condition_variable counter_lock;
 
 	Square square = Square(10, 10);
 	list<thread> threadList;
@@ -186,11 +201,11 @@ int main(int argc, char** argv) {
 	thread finishProgramThread(finishProgram);
 	thread printBoardThread(printBoard, win, &square, ref(ballList));
     thread moveSquareThread(moveSquare, &square, ref(ballList));
-	thread counterThread(change_counter, ref(ballList));
+	thread counterThread(change_counter, ref(ballList), ref(counter_lock));
 	
 	// Start balls threads
 	while (finish_flag != true) {
-		ballList.push_front(Ball(namesArray[nameIndex(gen)], sleepTime(gen), ballDirection(gen)));
+		ballList.push_front(Ball(namesArray[nameIndex(gen)], sleepTime(gen), ballDirection(gen), ref(counter_lock)));
 		threadList.push_back(thread(&Ball::moveBall, ballList.begin()));
 		this_thread::sleep_for(chrono::milliseconds(newThreadPause(gen)));
 	}
@@ -199,6 +214,8 @@ int main(int argc, char** argv) {
 	finishProgramThread.join();
 	printBoardThread.join();
 	moveSquareThread.join();
+	counter_ready = true;
+	counter_lock.notify_all();
 	counterThread.join();
 	for (Ball &ball : ballList) {
 		ball.wakeUp();
